@@ -1,0 +1,63 @@
+import os
+import time
+import socket
+import hashlib
+import json
+import requests
+import platform
+
+SERVER_URL = "http://your-server-ip:5000/endpoint_data"
+
+def get_processes():
+    """Returns a list of running processes."""
+    process_list = []
+    if platform.system() == 'Windows':
+        process_output = os.popen('tasklist').read().splitlines()
+        for process in process_output[3:]:
+            process_list.append(process)
+    else:
+        process_output = os.popen('ps aux').read().splitlines()
+        for process in process_output[1:]:
+            process_list.append(process)
+    return process_list
+
+def get_network_activity():
+    """Returns a list of network connections."""
+    connections = []
+    if platform.system() == 'Windows':
+        netstat_output = os.popen('netstat -an').read().splitlines()
+        for connection in netstat_output[4:]:
+            connections.append(connection)
+    else:
+        netstat_output = os.popen('netstat -tulnp').read().splitlines()
+        for connection in netstat_output[2:]:
+            connections.append(connection)
+    return connections
+
+def collect_data():
+    """Collect data from the endpoint."""
+    data = {
+        'hostname': socket.gethostname(),
+        'ip_address': socket.gethostbyname(socket.gethostname()),
+        'processes': get_processes(),
+        'network_activity': get_network_activity(),
+    }
+    return data
+
+def send_data(data):
+    """Send collected data to the server."""
+    response = requests.post(SERVER_URL, json=data)
+    if response.status_code == 200:
+        print("Data sent successfully.")
+    else:
+        print(f"Failed to send data: {response.status_code}")
+
+def run_agent():
+    """Main loop for the agent."""
+    while True:
+        endpoint_data = collect_data()
+        send_data(endpoint_data)
+        time.sleep(60)  # Send data every 60 seconds
+
+if __name__ == "__main__":
+    run_agent()
