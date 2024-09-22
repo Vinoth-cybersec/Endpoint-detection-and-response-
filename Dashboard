@@ -1,0 +1,16 @@
+from flask import Flask, render_template, jsonify
+import json
+
+app = Flask(__name__)
+
+@app.route('/')
+def dashboard():
+    """Dashboard to view alerts."""
+    alerts = []
+    with open('alerts.json', 'r') as alert_file:
+        for line in alert_file:
+            alerts.append(json.loads(line))
+    return render_template('dashboard.html', alerts=alerts)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001)
