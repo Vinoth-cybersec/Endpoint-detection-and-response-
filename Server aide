@@ -1,0 +1,43 @@
+from flask import Flask, request, jsonify
+import hashlib
+import json
+import time
+
+app = Flask(__name__)
+
+def detect_anomalies(data):
+    """Detect anomalies based on process and network data."""
+    anomalies = []
+    # Example: Detect any suspicious process names
+    for process in data['processes']:
+        if 'malware' in process.lower():
+            anomalies.append(f"Suspicious process found: {process}")
+    
+    # Example: Detect network activity on suspicious ports
+    for connection in data['network_activity']:
+        if ':6666' in connection:
+            anomalies.append(f"Suspicious network activity detected: {connection}")
+    
+    return anomalies
+
+@app.route('/endpoint_data', methods=['POST'])
+def receive_data():
+    """Endpoint to receive data from the agent."""
+    endpoint_data = request.get_json()
+    
+    anomalies = detect_anomalies(endpoint_data)
+    if anomalies:
+        alert = {
+            'hostname': endpoint_data['hostname'],
+            'anomalies': anomalies,
+            'timestamp': time.time(),
+        }
+        with open('alerts.json', 'a') as alert_file:
+            json.dump(alert, alert_file)
+            alert_file.write("\n")
+        return jsonify({"status": "Alert triggered", "anomalies": anomalies}), 200
+    
+    return jsonify({"status": "No anomalies detected"}), 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
